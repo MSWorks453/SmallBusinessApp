@@ -1,0 +1,31 @@
+{
+  "name": "smallbusinessapp-backend",
+  "version": "1.0.0",
+  "description": "REST API backend for SmallBusinessApp using Express + PostgreSQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:migrate": "node db/migrate.js",
+    "db:seed": "node db/seed.js",
+    "db:reset": "node db/seed.js --reset",
+    "db:setup": "npm run db:migrate && npm run db:seed",
+    "db:normalize-phones": "node db/normalize-phones.js",
+    "db:seed-users": "node db/seed-users.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2",
+    "jsonwebtoken": "9.0.2",
+    "node-cron": "4.2.1",
+    "pg": "^8.13.1",
+    "react-native-svg": "15.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

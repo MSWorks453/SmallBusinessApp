@@ -31,7 +31,19 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
+.env.*
 .env*.local
+# ...but keep the committed template
+!.env.example
+
+# Legacy seed data — real staff names, emails, phone numbers and salaries.
+# Excluded because this repository is public, and because a phone number is the
+# login credential in this app: publishing one tells anyone which number to
+# request an OTP for. These files are only the input to the one-time JSON→Postgres
+# migration (backend/db/seed.js); db/seed-users.js is the supported way to
+# bootstrap an install, and it uses placeholder numbers.
+backend/data/*.json
 
 # typescript
 *.tsbuildinfo
