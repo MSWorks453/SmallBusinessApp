@@ -1,0 +1,18 @@
+[build]
+  # No frontend build: this site deploys backend/ (an Express API) as a single
+  # Netlify Function, and nothing else. See netlify/functions/api.js.
+  command = "echo 'Backend-only deploy: no frontend build required'"
+  publish = "public"
+  functions = "netlify/functions"
+
+# Express (in backend/app.js) mounts every route under /api, so requests are
+# forwarded there as-is — the function reads the original path itself.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+# Fires backend/reports/scheduler.js's tick() every 5 minutes; tick() decides
+# whether it's actually time to send the daily/monthly WhatsApp report.
+[functions."report-scheduler"]
+  schedule = "*/5 * * * *"
