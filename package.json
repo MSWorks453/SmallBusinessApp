@@ -15,9 +15,15 @@
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
     "expo": "~57.0.13",
     "expo-secure-store": "~57.0.2",
     "expo-status-bar": "~57.0.1",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.2",
+    "node-cron": "^4.2.1",
+    "pg": "^8.23.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.2",
@@ -27,7 +33,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.15.4",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0"

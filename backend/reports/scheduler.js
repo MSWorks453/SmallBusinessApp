@@ -165,4 +165,87 @@ function start() {
   };
 }
 
-module.exports = { start, runReport, catchUp, DAILY_CRON, MONTHLY_CRON, ENABLED };
+/**
+ * Pulls the minute/hour (and, for the monthly job, day-of-month) out of a
+ * simple cron string. Only literal values are supported in those fields — no
+ * ranges, steps or lists — which matches both documented defaults
+ * ("0 20 * * *", "0 9 1 * *") and every value a business owner would
+ * realistically set for a single daily/monthly firing time.
+ *
+ * @param {string} cronExpr
+ * @returns {{ minute: number, hour: number, dayOfMonth: number|null }|null}
+ */
+function parseFixedTime(cronExpr) {
+  const parts = String(cronExpr).trim().split(/\s+/);
+  if (parts.length !== 5) return null;
+
+  const [minute, hour, dom] = parts;
+  if (!/^\d{1,2}$/.test(minute) || !/^\d{1,2}$/.test(hour)) return null;
+
+  return {
+    minute: Number(minute),
+    hour: Number(hour),
+    dayOfMonth: /^\d{1,2}$/.test(dom) ? Number(dom) : null,
+  };
+}
+
+/**
+ * How wide a window (in minutes) counts as "on time" for a `tick()` check.
+ * Must be >= the interval the caller polls at (see netlify/functions/
+ * report-scheduler.js, which polls every 5 minutes), or a target time could
+ * fall between two ticks and be missed entirely for the day.
+ */
+const TICK_WINDOW_MINUTES = 5;
+
+/**
+ * Serverless-friendly alternative to `start()`.
+ *
+ * There is no process alive between requests in a Netlify Function, so the
+ * `node-cron` timers registered by `start()` never fire there. Instead,
+ * netlify/functions/report-scheduler.js polls this on a short interval (a
+ * Netlify Scheduled Function), and `tick()` runs the daily/monthly job itself
+ * once local time in REPORT_TIMEZONE enters its target window.
+ *
+ * Firing more than once inside that window is harmless: `sendReport()` is
+ * idempotent per recipient/period (see reports/deliver.js).
+ *
+ * @param {Date} [now]
+ */
+async function tick(now = new Date()) {
+  if (!ENABLED) return;
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: REPORT_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const localHour = Number(parts.find((p) => p.type === 'hour').value);
+  const localMinute = Number(parts.find((p) => p.type === 'minute').value);
+  const minutesOfDay = localHour * 60 + localMinute;
+  const dayOfMonth = Number(today(now).slice(-2));
+
+  const daily = parseFixedTime(DAILY_CRON);
+  if (daily) {
+    const target = daily.hour * 60 + daily.minute;
+    if (minutesOfDay >= target && minutesOfDay < target + TICK_WINDOW_MINUTES) {
+      await runReport('daily');
+      await catchUp();
+    }
+  } else {
+    console.error(`[reports] REPORT_DAILY_CRON "${DAILY_CRON}" is not a fixed minute/hour; tick() cannot schedule it.`);
+  }
+
+  const monthly = parseFixedTime(MONTHLY_CRON);
+  if (monthly) {
+    const target = monthly.hour * 60 + monthly.minute;
+    const dayMatches = monthly.dayOfMonth === null || dayOfMonth === monthly.dayOfMonth;
+    if (dayMatches && minutesOfDay >= target && minutesOfDay < target + TICK_WINDOW_MINUTES) {
+      await runReport('monthly', addMonths(currentMonth(now), -1));
+    }
+  } else {
+    console.error(`[reports] REPORT_MONTHLY_CRON "${MONTHLY_CRON}" is not a fixed minute/hour; tick() cannot schedule it.`);
+  }
+}
+
+module.exports = { start, tick, runReport, catchUp, DAILY_CRON, MONTHLY_CRON, ENABLED };
